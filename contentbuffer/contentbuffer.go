@@ -1,4 +1,8 @@
+// MIT license
+// Mostly is slightly modified buffer realisation from std go library
 package contentbuffer
+
+// A buffer for asynchronous-safe data
 
 import (
 	"bytes"
@@ -26,6 +30,10 @@ func makeSlice(n int) []byte {
 	return make([]byte, n)
 }
 
+// A ContentBuffer is a storage for array of bytes,
+// which is useful to write once to it and often read full
+// set of data. It's safe for asynchronous programming,
+// locks while writing for reading and writing (RWMutex embedded)
 type ContentBuffer struct {
 	buf       []byte
 	mutex     sync.RWMutex
@@ -38,6 +46,7 @@ func (cb *ContentBuffer) Len() int { return len(cb.buf) }
 // grow grows the buffer to guarantee space for n more bytes.
 // It returns the index where bytes should be written.
 // If the buffer can't grow it will panic with ErrTooLarge.
+// Doesn't locks buffer.
 func (cb *ContentBuffer) grow(n int) int {
 	m := cb.Len()
 	// If buffer is empty, reset to recover space.
@@ -82,7 +91,7 @@ func (cb *ContentBuffer) truncate(n int) {
 // Truncate discards all but the first n unread bytes from the buffer
 // but continues to use the same allocated storage.
 // It panics if n is negative or greater than the length of the buffer.
-// Locks the mutex
+// Locks the buffer for writing and reading.
 func (cb *ContentBuffer) Truncate(n int) {
 	cb.mutex.Lock()
 	cb.truncate(n)
@@ -92,7 +101,7 @@ func (cb *ContentBuffer) Truncate(n int) {
 // Write appends the contents of p to the buffer, growing the buffer as
 // needed. The return value n is the length of p; err is always nil. If the
 // buffer becomes too large, Write will panic with ErrTooLarge.
-// Locks the mutex
+// Locks the buffer for writing and reading.
 func (cb *ContentBuffer) Write(p []byte) (n int, err error) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
@@ -105,6 +114,7 @@ func (cb *ContentBuffer) Write(p []byte) (n int, err error) {
 // the buffer as needed. The return value n is the number of bytes read. Any
 // error except io.EOF encountered during the read is also returned. If the
 // buffer becomes too large, ReadFrom will panic with ErrTooLarge.
+// Locks the buffer for writing and reading.
 func (cb *ContentBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	// If buffer is empty, reset to recover space.
 	cb.mutex.Lock()
@@ -142,6 +152,7 @@ func (cb *ContentBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 // The return value n is the number of bytes written; it always fits into an
 // int, but it is int64 to match the io.WriterTo interface. Any error
 // encountered during the write is also returned.
+// Locks buffer for writing (but not for reading!)
 func (cb *ContentBuffer) WriteTo(w io.Writer) (n int64, err error) {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
@@ -163,4 +174,14 @@ func (cb *ContentBuffer) WriteTo(w io.Writer) (n int64, err error) {
 		}
 	}
 	return
+}
+
+// returns io.ReadCloser and locks buffer for writing and reading.
+func (cb *ContentBuffer) Reader() *ContentReader {
+	// unlocks in ContentReader.Close method
+	cb.mutex.Lock()
+	return &ContentReader{
+		buf:      cb,
+		isOpened: true,
+	}
 }
