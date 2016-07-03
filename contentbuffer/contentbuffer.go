@@ -185,3 +185,11 @@ func (cb *ContentBuffer) Reader() *ContentReader {
 		isOpened: true,
 	}
 }
+
+func (cb *ContentBuffer) String() string {
+	if cb == nil {
+		// Special case, useful in debugging.
+		return "<nil>"
+	}
+	return string(cb.buf[cb.off:])
+}
