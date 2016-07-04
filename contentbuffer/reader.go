@@ -9,6 +9,7 @@ import (
 type ContentReader struct {
 	buf      *ContentBuffer
 	isOpened bool
+	off      int
 }
 
 // Read reads the next len(p) bytes from the buffer or until the buffer
@@ -19,21 +20,20 @@ func (cr *ContentReader) Read(p []byte) (n int, err error) {
 	if !cr.isOpened {
 		panic(errors.New("try read from closed content reader"))
 	}
-	if cr.buf.off >= len(cr.buf.buf) {
-		// Buffer is empty, reset to recover space.
-		cr.buf.truncate(0)
+	if cr.off >= len(cr.buf.buf) {
+		cr.off = 0
 		if len(p) == 0 {
 			return
 		}
 		return 0, io.EOF
 	}
-	n = copy(p, cr.buf.buf[cr.buf.off:])
-	cr.buf.off += n
+	n = copy(p, cr.buf.buf[cr.off:])
+	cr.off += n
 	return
 }
 
 func (cr *ContentReader) Close() error {
 	cr.isOpened = false
-	cr.buf.mutex.Unlock()
+	cr.buf.mutex.RUnlock()
 	return nil
 }

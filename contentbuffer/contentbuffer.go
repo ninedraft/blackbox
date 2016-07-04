@@ -179,10 +179,11 @@ func (cb *ContentBuffer) WriteTo(w io.Writer) (n int64, err error) {
 // returns io.ReadCloser and locks buffer for writing and reading.
 func (cb *ContentBuffer) Reader() *ContentReader {
 	// unlocks in ContentReader.Close method
-	cb.mutex.Lock()
+	cb.mutex.RLock()
 	return &ContentReader{
 		buf:      cb,
 		isOpened: true,
+		off:      cb.off,
 	}
 }
 

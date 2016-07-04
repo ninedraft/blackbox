@@ -1,4 +1,5 @@
 // projecters.go
 package main
 
-type PageProjecter {}
+type PageProjecter struct {
+}
