@@ -2,27 +2,16 @@
 package main
 
 import (
-	"log"
+	"errors"
 	"os"
 	"path"
+	"regexp"
+	"strings"
 )
 
-func Ok(err error) bool {
-	if err != nil {
-		log.Println(err)
-		return false
-	} else {
-		return true
-	}
-}
-
-func Fatal(err error) {
-	if err != nil {
-		log.Println(err)
-		//panic(err)
-		os.Exit(1)
-	}
-}
+var (
+	ErrIsNotDir = errors.New("is not dir")
+)
 
 func GetFilesIfDir(path string) ([]os.FileInfo, error) {
 	dir, err := os.Open(path)
@@ -37,7 +26,6 @@ func GetFilesIfDir(path string) ([]os.FileInfo, error) {
 	if !info.IsDir() {
 		return nil, ErrIsNotDir
 	}
-
 	files, err := dir.Readdir(-1)
 	if err != nil {
 		return nil, err
@@ -47,4 +35,12 @@ func GetFilesIfDir(path string) ([]os.FileInfo, error) {
 
 func FileNameNoExtension(filename string) string {
 	return filename[0 : len(filename)-len(path.Ext(filename))]
+}
+
+func ExctractTags(text string) []string {
+	tags := regexp.MustCompile("#([^#]+)[\\s,;]*").FindAllString(text, -1)
+	for i, t := range tags {
+		tags[i] = strings.ToLower(t)
+	}
+	return tags
 }

@@ -10,12 +10,18 @@ type Logger interface {
 	Printf(string, ...interface{})
 }
 
-type DebugLogger struct{}
+type LoggerDebug struct{}
 
-func (dl *DebugLogger) Println(v ...interface{}) {
+func (dl *LoggerDebug) Println(v ...interface{}) {
 	log.Println(v...)
 }
 
-func (dl *DebugLogger) Printf(f string, v ...interface{}) {
+func (dl *LoggerDebug) Printf(f string, v ...interface{}) {
 	log.Printf(f, v...)
 }
+
+type LoggerVoid struct{}
+
+func (_ *LoggerVoid) Println(...interface{}) {}
+
+func (_ *LoggerVoid) Printf(string, ...interface{}) {}

@@ -1,91 +1,57 @@
-// MDArticle.go
+// page.go
 package main
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"github.com/golang-commonmark/markdown"
-	yaml "gopkg.in/yaml.v2"
 )
 
-var (
-	ErrTemplateNotFound = errors.New("template not found")
+const (
+	TypeMarkdownArticle = PageType("markdown article")
 )
 
-type Article struct {
-	ID       string   `yaml: id`
-	Title    string   `yaml: title`
-	Author   string   `yaml: author`
-	Tags     []string `yaml: tags`
-	Template string   `yaml: template`
-	Body     template.HTML
-	rawbody  string
-	Preview  template.HTML
-
-	path              string
-	compilledtemplate *template.Template
-	buf               []byte
+type MarkdownArticle struct {
+	ID    string
+	Title string
+	Body  template.HTML
+	Tags  []string
 }
 
-func NewArticleFromFile(artpath string) (*Article, error) {
-	narticle := &Article{
-		path: artpath,
-	}
-	return narticle, nil
+func (markdownArticle *MarkdownArticle) ToPage() PageData {
+	pd := PageData{}
+	pd["Title"] = markdownArticle.Title
+	pd["Tags"] = markdownArticle.Tags
+	pd["ID"] = markdownArticle.ID
+	return pd
 }
 
-func (article *Article) SetTemplate(t *template.Template) {
-	article.compilledtemplate = t
+func (markdownArticle *MarkdownArticle) Type() PageType {
+	return TypeMarkdownArticle
 }
 
-func (article *Article) Render() error {
-	if article.compilledtemplate == nil {
-		return ErrTemplateNotFound
-	}
-	md := markdown.New(markdown.HTML(true))
-	article.Body = template.HTML(md.RenderToString([]byte(article.rawbody)))
-	buf := bytes.NewBuffer(article.buf)
-	err := article.compilledtemplate.Execute(buf, article)
+func MarkdownArticleFromReader(r io.Reader) (*MarkdownArticle, error) {
+	buf := &bytes.Buffer{}
+	_, err := buf.ReadFrom(r)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("error while reading page: %v", err)
 	}
-	if len(article.buf) < buf.Len() {
-		article.buf = append(article.buf, make([]byte, 2*buf.Len())...)
-	}
-	copy(article.buf, buf.Bytes())
-	return nil
-}
-
-func (mda *Article) ParseFile(name string) error {
-	bin, err := ioutil.ReadFile(name)
-	if err == nil {
-		data := strings.SplitN(string(bin), "---", 3)
-		if len(data) < 2 {
-			return ErrInvalidArticleFile
-		}
-		err = yaml.Unmarshal([]byte(data[1]), mda)
-		if err != nil {
-			return err
-		}
-		mda.rawbody = data[2]
-	}
-	return err
-}
-
-func (article *Article) Reload() error {
-	err := article.ParseFile(article.path)
-	return err
-}
-
-func (mda *Article) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write(mda.buf)
-	if err == io.EOF {
-		return int64(n), nil
-	}
-	return int64(n), err
+	markdownArticle := &MarkdownArticle{}
+	idLine := regexp.MustCompile("^[\\s, \\t, \\n, \\r]*(\\w+)").Find(buf.Bytes())
+	markdownArticle.ID = strings.TrimSpace(string(idLine))
+	titleLine := regexp.MustCompile("#[\\s, \\t]*([^\\n]+)").Find(buf.Bytes())
+	title := strings.TrimLeftFunc(string(titleLine), func(r rune) bool {
+		return r == '#' || r == ' ' || r == '	'
+	})
+	markdownArticle.Title = strings.TrimSpace(title)
+	md := markdown.New(markdown.HTML(true))
+	body := md.RenderToString(buf.Bytes())
+	markdownArticle.Body = template.HTML(body)
+	markdownArticle.Tags = ExctractTags(body)
+	return markdownArticle, nil
 }
