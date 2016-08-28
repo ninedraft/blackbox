@@ -4,17 +4,30 @@ import (
 	"errors"
 	"html/template"
 	"io"
+	"net/http"
 	"strings"
 	"sync"
-)
 
-// pages map must be changed to LRU cache
+	"github.com/gorilla/mux"
+)
 
 var (
 	pages         = map[string]Pager{}
 	pagesMutex    = &sync.Mutex{}
 	ErrNoSuchPage = errors.New("now such page")
 )
+
+func PageHandler(rw http.ResponseWriter, r *http.Request) {
+	id, ok := mux.Vars(r)["pageid"]
+	Log.Printf("requesting page: IP: %s  %q\n", r.RemoteAddr, id)
+	if !ok {
+		id = "index"
+	}
+	err := RoutePage(id, rw)
+	if err != nil {
+		Log.Printf("error while writing response %q: %v\n", r.URL.String(), err)
+	}
+}
 
 func RoutePage(id string, wr io.Writer) error {
 	if pages[id] == nil {
@@ -29,7 +42,9 @@ func RoutePage(id string, wr io.Writer) error {
 		}
 		fallthrough
 	default:
-		return RenderPage(FillPage(page, PageDate.ToPage()), Templates["article"], wr)
+		return RenderPage(FillPage(page, PageDate.ToPage(),
+			PageData{"Blog": "BlackBox"},
+		), Templates["article"], wr)
 	}
 }
 

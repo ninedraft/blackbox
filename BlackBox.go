@@ -14,6 +14,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -34,15 +36,31 @@ func IndexHandler(rw http.ResponseWriter, r *http.Request) {
 
 func main() {
 	Port := flag.Uint64("port", 8080, "port")
-	TemplatePath := flag.String("template", "./templates", "path to templates")
-	StaticPath := flag.String("media", "./static", "path to media content")
-	ArticlesPath := flag.String("articles", "./articles", "path to articles")
-	AppsPath := flag.String("apps", "./apps", "path to apps")
+	TemplatePath := flag.String("template", "./data/templates/", "path to templates")
+	StaticPath := flag.String("media", "./data/static/", "path to media content")
+	ArticlesPath := flag.String("articles", "./data/articles/", "path to articles")
+	AppsPath := flag.String("apps", "./data/apps/", "path to apps")
 	flag.Parse()
 	Log.Printf("templates: %s\nstatic: %s\narticles: %s\napps: %s\nserving at port %d\n", *TemplatePath, *StaticPath, *ArticlesPath, *AppsPath, *Port)
 	router := mux.NewRouter()
-	router.HandleFunc("/", IndexHandler)
-	router.HandleFunc("/index", IndexHandler)
+
+	absStaticPath, err := filepath.Abs(*StaticPath)
+	Ok("error while calculating absolute static path: %v\n", err)
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(absStaticPath))))
+
+	indexArticleFile, err := os.Open(*ArticlesPath + "index.md")
+	Ok("error while loading index article: %v\n", err)
+	indexArticle, err := MarkdownArticleFromReader(indexArticleFile)
+	Ok("error while reading index article: %v\n", err)
+	Ok("error while closing index article file: %v\n", indexArticleFile.Close())
+	pages["index"] = indexArticle
+
+	indexTemplate, err := template.ParseFiles(*TemplatePath + "index.html")
+	Ok("error while loading index template: %v\n", err)
+	Templates["index"] = indexTemplate
+
+	router.HandleFunc("/article/{pageid}", PageHandler)
+
 	server := http.Server{
 		Handler:      router,
 		Addr:         "127.0.0.1:" + strconv.FormatUint(*Port, 10),

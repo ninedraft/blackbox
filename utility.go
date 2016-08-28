@@ -13,6 +13,12 @@ var (
 	ErrIsNotDir = errors.New("is not dir")
 )
 
+func Ok(f string, err error) {
+	if err != nil {
+		Log.Printf(f, err)
+		os.Exit(1)
+	}
+}
 func GetFilesIfDir(path string) ([]os.FileInfo, error) {
 	dir, err := os.Open(path)
 	defer dir.Close()
@@ -38,7 +44,7 @@ func FileNameNoExtension(filename string) string {
 }
 
 func ExctractTags(text string) []string {
-	tags := regexp.MustCompile("#([^#]+)[\\s,;]*").FindAllString(text, -1)
+	tags := regexp.MustCompile("#([^#<>\\s\\t\\r\\n]+)").FindAllString(text, -1)
 	for i, t := range tags {
 		tags[i] = strings.ToLower(t)
 	}

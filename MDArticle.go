@@ -28,6 +28,7 @@ func (markdownArticle *MarkdownArticle) ToPage() PageData {
 	pd["Title"] = markdownArticle.Title
 	pd["Tags"] = markdownArticle.Tags
 	pd["ID"] = markdownArticle.ID
+	pd["Body"] = markdownArticle.Body
 	return pd
 }
 
@@ -44,7 +45,7 @@ func MarkdownArticleFromReader(r io.Reader) (*MarkdownArticle, error) {
 	markdownArticle := &MarkdownArticle{}
 	idLine := regexp.MustCompile("^[\\s, \\t, \\n, \\r]*(\\w+)").Find(buf.Bytes())
 	markdownArticle.ID = strings.TrimSpace(string(idLine))
-	titleLine := regexp.MustCompile("#[\\s, \\t]*([^\\n]+)").Find(buf.Bytes())
+	titleLine := regexp.MustCompile("#[\\s, \\t]+([^\\n]+)").Find(buf.Bytes())
 	title := strings.TrimLeftFunc(string(titleLine), func(r rune) bool {
 		return r == '#' || r == ' ' || r == '	'
 	})
