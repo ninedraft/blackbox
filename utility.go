@@ -19,6 +19,13 @@ func Ok(f string, err error) {
 		os.Exit(1)
 	}
 }
+
+func Catch(f string, err error) {
+	if err != nil {
+		Log.Printf(f, err)
+	}
+}
+
 func GetFilesIfDir(path string) ([]os.FileInfo, error) {
 	dir, err := os.Open(path)
 	defer dir.Close()

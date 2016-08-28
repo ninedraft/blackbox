@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -38,13 +39,26 @@ func RoutePage(id string, wr io.Writer) error {
 	switch {
 	case loweredID == "index" || loweredID == "home":
 		if Templates["index"] != nil {
-			return RenderPage(FillPage(pages["index"]), Templates["index"], wr)
+			return RenderPage(FillPage(pages["index"],
+				PageDate.ToPage(),
+				PageData{"Blog": "BlackBox"},
+			), Templates["index"], wr)
 		}
 		fallthrough
 	default:
-		return RenderPage(FillPage(page, PageDate.ToPage(),
+		pageData := FillPage(page,
+			PageDate.ToPage(),
 			PageData{"Blog": "BlackBox"},
-		), Templates["article"], wr)
+		)
+		return RenderPage(pageData, Templates["article"], wr)
+	}
+}
+
+func PageHandleFunc(id string) func(http.ResponseWriter, *http.Request) {
+	ferr := fmt.Sprintf("error while writing response %q: %v\n", id)
+	return func(rw http.ResponseWriter, r *http.Request) {
+		Log.Printf("requesting page: IP: %s  %q\n", r.RemoteAddr, id)
+		Catch(ferr, RoutePage(id, rw))
 	}
 }
 

@@ -42,6 +42,7 @@ func main() {
 	AppsPath := flag.String("apps", "./data/apps/", "path to apps")
 	flag.Parse()
 	Log.Printf("templates: %s\nstatic: %s\narticles: %s\napps: %s\nserving at port %d\n", *TemplatePath, *StaticPath, *ArticlesPath, *AppsPath, *Port)
+
 	router := mux.NewRouter()
 
 	absStaticPath, err := filepath.Abs(*StaticPath)
@@ -60,6 +61,8 @@ func main() {
 	Templates["index"] = indexTemplate
 
 	router.HandleFunc("/article/{pageid}", PageHandler)
+	router.HandleFunc("/index", PageHandleFunc("index"))
+	router.HandleFunc("/home", PageHandleFunc("index"))
 
 	server := http.Server{
 		Handler:      router,

@@ -44,7 +44,7 @@ type pageDate struct{}
 
 func (pdate *pageDate) ToPage() PageData {
 	return PageData{
-		"Date": time.Now().String(),
+		"Date": time.Now().Format("2006 Jan Mon 15:04"),
 	}
 }
 
