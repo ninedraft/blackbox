@@ -14,33 +14,23 @@
 
 package cmd
 
-import (
-	"fmt"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Starts http server (8080 port by default)",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "starts http server (8080 port by default)",
+	Long:  `Starts http server (8080 port by default)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
-		fmt.Println("serve called")
+		Configuration.Mode = ModeServe
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(serveCmd)
-
+	serveCmd.Flags().StringVar(&Configuration.Addr, "addr", ":8080", "server address")
 	// Here you will define your flags and configuration settings.
-
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// serveCmd.PersistentFlags().String("foo", "", "A help for foo")
