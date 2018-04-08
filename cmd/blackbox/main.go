@@ -2,24 +2,24 @@ package main
 
 import (
 	"net/http"
-	
+
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
 
 func main() {
 	// Echo instance
-	e := echo.New()
+	server := echo.New()
 
 	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	server.Use(middleware.Logger())
+	server.Use(middleware.Recover())
 
 	// Routes
-	e.GET("/", hello)
+	server.GET("/", hello)
 
 	// Start server
-	e.Logger.Fatal(e.Start(":1323"))
+	server.Logger.Fatal(server.Start(":1323"))
 }
 
 // Handler
